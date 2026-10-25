@@ -1,281 +1,133 @@
-# Alpha Intelligence
-### Month 1 Capstone — AI Engineering Bootcamp
+# AlphaFund Terminal
 
-A unified intelligence dashboard for quantitative analysts. Type one question and the AI simultaneously queries a **structured SQL database** (S&P 500 financials) and an **unstructured vector store** (Q4 earnings call transcripts), then fuses both results into a single executive summary.
+AlphaFund Terminal is a Streamlit dashboard for asking questions about company financials and sample earnings-call transcript text. It combines SQL queries against an S&P 500 financials dataset with semantic search over bundled transcript excerpts, then uses an OpenRouter model to compose an answer.
 
----
+## Features
 
-## What This App Does
+- **Financial data:** Loads the S&P 500 financials CSV from GitHub into an in-memory SQLite database. If the download fails, the app uses fallback data for eight companies.
+- **Transcript search:** Builds a local FAISS index from bundled Q4 2024 sample transcript text for MSFT, AAPL, GOOGL, NVDA, and AMZN. The `all-MiniLM-L6-v2` embedding model is downloaded on first launch.
+- **AI answers:** A LangChain tool-calling agent chooses whether to query financials, search transcripts, or use both. OpenRouter provides the language model.
+- **Interactive dashboard:** A Streamlit chat UI includes a routing log and sample queries.
 
-| Layer | Technology | Data Source |
-|---|---|---|
-| SQL Engine | SQLite (in-memory) | S&P 500 CSV — pulled live from GitHub |
-| Vector Search | FAISS + MiniLM embeddings | Q4 2024 earnings transcripts (MSFT, AAPL, GOOGL, NVDA, AMZN) |
-| AI Orchestration | LangChain `bind_tools` agentic loop | OpenRouter API |
-| Frontend | Streamlit | — |
+## Requirements
 
----
+- Python 3.10 or newer
+- An OpenRouter API key
+- Internet access on first launch to download Python packages, the financials CSV, and the embedding model
 
-## PART 1 — Run It Locally
+## Run locally
 
-### Step 1 — Get Your OpenRouter API Key
+Run these commands from the repository root (the folder containing `requirements.txt`).
 
-1. Go to **[openrouter.ai/keys](https://openrouter.ai/keys)**
-2. Sign up for a free account (no billing required)
-3. Click **Create Key**
-4. Copy the key — it looks like `sk-or-v1-xxxxxxxx...`
-
----
-
-### Step 2 — Clone the Repo
-
-Open your terminal and run:
+### 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/The-AplhaFund-Dashboard.git
-cd AlphaIntelligence
+git clone https://github.com/himanshuvidyarthi/The-AlphaFund-Dashboard.git
+cd The-AlphaFund-Dashboard
 ```
 
-> Replace `YOUR-USERNAME` with your actual GitHub username.
+### 2. Create and activate a virtual environment
 
----
+**Windows PowerShell**
 
-### Step 3 — Create a Virtual Environment (Recommended)
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+**macOS / Linux**
 
 ```bash
-python -m venv venv
-
-# Mac / Linux
-source venv/bin/activate
-
-# Windows
-venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate
 ```
 
----
-
-### Step 4 — Install Dependencies
+### 3. Install dependencies
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-This installs everything — Streamlit, LangChain, FAISS, embeddings. Takes about 2 minutes on first run.
-
----
-
-### Step 5 — Set Your API Key
-
-**Option A — Paste it in the sidebar (easiest for beginners)**
-
-Skip this step. Just run the app and paste your key into the sidebar input field when prompted.
-
-**Option B — Environment variable (recommended)**
+### 4. Start the app
 
 ```bash
-# Mac / Linux
-cp .env.example .env
+streamlit run AlphaIntelligence/app.py
 ```
+
+Open the local URL printed by Streamlit, usually <http://localhost:8501>. On first launch, the app downloads the embedding model and attempts to fetch the financials CSV.
+
+### 5. Enter your OpenRouter API key
+
+Create a key at <https://openrouter.ai/keys>, then enter it in the **OPENROUTER KEY** field in the app sidebar.
+
+Alternatively, set `OPENROUTER_API_KEY` in your shell before launching Streamlit:
+
+**Windows PowerShell**
+
+```powershell
+$env:OPENROUTER_API_KEY = "your-key"
+streamlit run AlphaIntelligence/app.py
+```
+
+**macOS / Linux**
 
 ```bash
-# Windows
-copy .env.example .env
+export OPENROUTER_API_KEY="your-key"
+streamlit run AlphaIntelligence/app.py
 ```
 
-Open the `.env` file in any text editor and replace the placeholder:
+The app does not automatically load `.env` files. Do not commit or share your API key.
 
+## Models
+
+Choose the routing model from the sidebar:
+
+| Model | Notes |
+|---|---|
+| `google/gemini-2.0-flash-001` | Default |
+| `anthropic/claude-3.5-haiku` | Alternative |
+| `openai/gpt-4o-mini` | Alternative and automatic fallback |
+| `mistralai/mistral-nemo` | Alternative |
+
+If OpenRouter reports that the selected model has no endpoints (or returns a 404), the app retries with `openai/gpt-4o-mini`.
+
+## Example questions
+
+- What is Microsoft's market cap, and what does the bundled sample transcript say about AI infrastructure?
+- Compare NVDA and AAPL market caps, then search for comments about revenue.
+- Which sector has the highest average EBITDA?
+- What does Amazon's bundled sample transcript say about capital expenditure?
+
+The transcript content is bundled sample text, not a live transcript feed. Financial figures come from the downloaded dataset when available; otherwise, the app uses its built-in fallback values.
+
+## Deploy with Streamlit Community Cloud
+
+1. Push this repository to a GitHub account you control.
+2. In Streamlit Community Cloud, create an app from that repository and branch.
+3. Set **Main file path** to `AlphaIntelligence/app.py`.
+4. Deploy, open the app, and enter your OpenRouter key in the sidebar.
+
+The dependency file is at the repository root: `requirements.txt`. The current app reads the key from the sidebar or the `OPENROUTER_API_KEY` environment variable; it does not read Streamlit secrets directly.
+
+## Project layout
+
+```text
+The-AlphaFund-Dashboard/
+├── requirements.txt
+└── AlphaIntelligence/
+    ├── app.py
+    ├── .env.example
+    ├── .gitignore
+    └── README.md
 ```
-OPENROUTER_API_KEY=sk-or-v1-your-actual-key-here
-```
-
-Save the file.
-
-> **IMPORTANT:** Never share or commit your `.env` file. It is already blocked by `.gitignore`.
-
----
-
-### Step 6 — Run the App
-
-```bash
-streamlit run app.py
-```
-
-Your browser will open automatically at **http://localhost:8501**
-
-On first launch the app will:
-1. Pull the live S&P 500 CSV from GitHub → load into SQLite
-2. Build the FAISS vector index from earnings transcripts
-3. Show the terminal UI — ready for queries
-
----
-
-### Step 7 — Choose Your Model
-
-In the **sidebar**, use the **ROUTING MODEL** dropdown:
-
-| Model | Speed | Best For |
-|---|---|---|
-| `google/gemini-2.0-flash-001` | Fast | **Start here — default** |
-| `anthropic/claude-3.5-haiku` | Medium | Best answer quality |
-| `openai/gpt-4o-mini` | Fast | Reliable fallback |
-| `mistralai/mistral-nemo` | Fastest | Simple SQL-only queries |
-
----
-
-### Step 8 — Test with the Boss-Fight Query
-
-Paste this into the chat input:
-
-```
-What is the exact market cap of Microsoft (MSFT), and what did their CEO
-say about AI infrastructure investments in the latest earnings call?
-```
-
-**What should happen:**
-- Agent fires `query_sp500_financials` → gets MSFT market cap from SQL
-- Agent fires `search_earnings_transcripts` → finds Satya Nadella's quote from FAISS
-- Both results fused into one polished answer
-
-Click **▸ ROUTING LOG** below the response to see which tools fired.
-
----
-
-## PART 2 — Deploy to Streamlit Cloud (Share with the World)
-
-### Step 1 — Create a GitHub Repo
-
-1. Go to **[github.com/new](https://github.com/new)**
-2. Name it `AlphaIntelligence`
-3. Set it to **Public**
-4. Do **NOT** tick "Add README" — we already have one
-5. Click **Create repository**
-
----
-
-### Step 2 — Push Your Code
-
-Run these commands inside your project folder:
-
-```bash
-# Initialise git
-git init
-
-# Stage all files
-git add app.py requirements.txt README.md .env.example .gitignore
-
-# DO NOT run: git add .env  ← never add this
-
-# Commit
-git commit -m "Initial commit: AlphaFund Terminal"
-
-# Connect to GitHub (replace YOUR-USERNAME)
-git remote add origin https://github.com/YOUR-USERNAME/AlphaIntelligence.git
-
-# Push
-git branch -M main
-git push -u origin main
-```
-
----
-
-### Step 3 — Deploy on Streamlit Cloud
-
-1. Go to **[share.streamlit.io](https://share.streamlit.io)**
-2. Sign in with your GitHub account
-3. Click **New app**
-4. Fill in:
-   - **Repository:** `YOUR-USERNAME/AlphaIntelligence`
-   - **Branch:** `main`
-   - **Main file path:** `app.py`
-5. Click **Advanced settings**
-6. Under **Secrets**, paste this (replace with your real key):
-
-```toml
-OPENROUTER_API_KEY = "sk-or-v1-your-key-here"
-```
-
-7. Click **Deploy**
-
-Your app will be live at:
-```
-https://YOUR-USERNAME-alphafund-terminal-app-xxxx.streamlit.app
-```
-
----
-
-## Project Structure
-
-```
-alphafund-terminal/
-│
-├── app.py               ← Main Streamlit app (all logic lives here)
-├── requirements.txt     ← Python dependencies
-├── .env.example         ← API key template (safe to commit)
-├── .gitignore           ← Keeps your .env and cache out of git
-└── README.md            ← This file
-```
-
----
-
-## How the AI Routing Works
-
-```
-User types a question
-        │
-        ▼
-LLM receives question + 2 tools bound via bind_tools()
-        │
-        ├── Needs structured data?  → fires query_sp500_financials(sql)
-        ├── Needs qualitative data? → fires search_earnings_transcripts(query)
-        │         (both can fire in the same round)
-        ▼
-Tool results added to message history
-        │
-        ▼
-LLM reads all results → writes final fused answer
-        │
-        ▼
-Rendered in Streamlit terminal UI
-```
-
-This is a **two-pass agentic loop** — not a rigid if/else router. The AI decides which tools to use based on the question. If both are needed, both fire simultaneously.
-
----
 
 ## Troubleshooting
 
-| Error | Fix |
+| Issue | What to try |
 |---|---|
-| `401 Unauthorized` | API key is wrong or expired — generate a new one at openrouter.ai/keys |
-| `429 Rate Limited` | Hit free tier limit — wait 1 minute or switch to a different model |
-| `400 Invalid model ID` | Model name typo — copy exact model string from the dropdown |
-| `SQL Error: no such table` | Database failed to load — check internet connection and re-run |
-| `No rows returned` | Ticker not in dataset — try MSFT, AAPL, GOOGL, NVDA, AMZN |
-| App shows fallback data | GitHub CSV unreachable — app loaded 8 hardcoded stocks instead |
-| White screen on deploy | Check Streamlit Cloud logs — most likely the secret key is missing |
-
----
-
-## Sample Queries to Try
-
-```
-# Dual tool — the boss fight
-What is the exact market cap of Microsoft (MSFT), and what did their CEO
-say about AI infrastructure investments in the latest earnings call?
-
-# Multi-stock comparison
-Compare NVDA and AAPL market caps, then find what each CEO said about revenue growth.
-
-# Pure SQL
-Which sector has the highest average EBITDA? Show the top 3 sectors.
-
-# Pure transcript
-What did Amazon's CFO say about capital expenditure in 2024?
-
-# Cross-reference valuation
-What is NVDA's P/E ratio, and does their earnings call justify the valuation?
-```
-
----
-
-*Built for the AI Engineering Bootcamp — Month 1 Capstone*
+| Authentication required | Enter a valid OpenRouter key in the sidebar or set `OPENROUTER_API_KEY` before launching. |
+| Model endpoint or 404 error | The app retries with `openai/gpt-4o-mini`; check your OpenRouter account and model availability if it still fails. |
+| First launch takes a while | The embedding model is downloaded and the FAISS index is built locally on startup. |
+| Financial data does not load | Check internet access. If the CSV request fails, the app uses its eight-company fallback dataset. |
+| A ticker is missing from fallback results | The fallback dataset contains MSFT, AAPL, GOOGL, NVDA, AMZN, META, TSLA, and JPM. |
+| Deploy does not start | Confirm the main file is `AlphaIntelligence/app.py` and dependencies are installed from the root `requirements.txt`. |
